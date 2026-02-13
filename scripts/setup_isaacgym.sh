@@ -4,9 +4,9 @@ set -ex
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ROOT_DIR=$(dirname "$SCRIPT_DIR")
 
-# Use CONDA_ENV_NAME if provided, otherwise default to "hsgym"
-CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsgym}
+CONDA_ENV_NAME="hsgym"
 echo "conda environment name is set to: $CONDA_ENV_NAME"
+
 # Create overall workspace
 source ${SCRIPT_DIR}/source_common.sh
 ENV_ROOT=$CONDA_ROOT/envs/$CONDA_ENV_NAME

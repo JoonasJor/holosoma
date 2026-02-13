@@ -48,9 +48,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Create overall workspace
-
-# Use CONDA_ENV_NAME if provided, otherwise default to "hsmujoco"
-CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsmujoco}
+CONDA_ENV_NAME="hsmujoco"
 echo "conda environment name is set to: $CONDA_ENV_NAME"
 
 source ${SCRIPT_DIR}/source_common.sh
@@ -60,20 +58,20 @@ WARP_SENTINEL_FILE=${WORKSPACE_DIR}/.env_setup_finished_$CONDA_ENV_NAME_warp
 
 mkdir -p $WORKSPACE_DIR
 
+# Detect OS and architecture
+HOST_OS_NAME="$(uname -s)"
+HOST_ARCH_NAME="$(uname -m)"
+
 if [[ ! -f $SENTINEL_FILE ]]; then
   # Install miniconda (reuse existing logic)
   if [[ ! -d $CONDA_ROOT ]]; then
     mkdir -p $CONDA_ROOT
 
-    # Detect OS and architecture
-    OS_NAME="$(uname -s)"
-    ARCH_NAME="$(uname -m)"
-
     # Decide installer name based on OS/arch
-    if [[ "$OS_NAME" == "Linux" ]]; then
+    if [[ "$HOST_OS_NAME" == "Linux" ]]; then
       MINICONDA_INSTALLER="Miniconda3-latest-Linux-x86_64.sh"
-    elif [[ "$OS_NAME" == "Darwin" ]]; then
-      if [[ "$ARCH_NAME" == "arm64" ]]; then
+    elif [[ "$HOST_OS_NAME" == "Darwin" ]]; then
+      if [[ "$HOST_ARCH_NAME" == "arm64" ]]; then
         # Apple Silicon
         MINICONDA_INSTALLER="Miniconda3-latest-MacOSX-arm64.sh"
       else
@@ -81,7 +79,7 @@ if [[ ! -f $SENTINEL_FILE ]]; then
         MINICONDA_INSTALLER="Miniconda3-latest-MacOSX-x86_64.sh"
       fi
     else
-      echo "Unsupported OS: $OS_NAME"
+      echo "Unsupported OS: $HOST_OS_NAME"
       exit 1
     fi
 
@@ -107,7 +105,7 @@ if [[ ! -f $SENTINEL_FILE ]]; then
   # sudo apt-get install -y libgl1-mesa-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev
 
   # Install libstdcxx-ng to fix potential GLIBCXX issues (Linux only)
-  if [[ "$OS_NAME" == "Linux" ]]; then
+  if [[ "$HOST_OS_NAME" == "Linux" ]]; then
     conda install -c conda-forge -y libstdcxx-ng
   fi
 
@@ -131,13 +129,13 @@ if [[ ! -f $SENTINEL_FILE ]]; then
   # Install Holosoma packages
   echo "Installing Holosoma packages"
   pip install -U pip
-  if [[ "$OS_NAME" == "Linux" ]]; then
-    pip install -e $ROOT_DIR/src/holosoma[unitree, booster]
-  elif [[ "$OS_NAME" == "Darwin" ]]; then
+  if [[ "$HOST_OS_NAME" == "Linux" ]]; then
+    pip install -e $ROOT_DIR/src/holosoma[unitree]
+  elif [[ "$HOST_OS_NAME" == "Darwin" ]]; then
     echo "Warning: only unitree support for osx"
     pip install -e $ROOT_DIR/src/holosoma[unitree]
   else
-    echo "Unsupported OS: $OS_NAME"
+    echo "Unsupported OS: $HOST_OS_NAME"
     exit 1
   fi
 

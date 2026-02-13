@@ -4,8 +4,8 @@ if [ -n "${BASH_SOURCE[0]}" ]; then
 elif [ -n "${ZSH_VERSION}" ]; then
     SCRIPT_DIR=$( cd -- "$( dirname -- "${(%):-%x}" )" &> /dev/null && pwd )
 fi
-# Use CONDA_ENV_NAME if provided, otherwise default to "hsgym"
-CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsgym}
+
+CONDA_ENV_NAME="hsgym"
 echo "conda environment name is set to: $CONDA_ENV_NAME"
 
 source ${SCRIPT_DIR}/source_common.sh
