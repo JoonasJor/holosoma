@@ -1,2 +1,5 @@
 WORKSPACE_DIR=$HOME/.holosoma_deps
 CONDA_ROOT=$WORKSPACE_DIR/miniconda3
+
+export WORKSPACE_DIR
+export CONDA_ROOT

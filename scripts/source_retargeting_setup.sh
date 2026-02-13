@@ -5,7 +5,7 @@ elif [ -n "${ZSH_VERSION}" ]; then
     SCRIPT_DIR=$( cd -- "$( dirname -- "${(%):-%x}" )" &> /dev/null && pwd )
 fi
 
-CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsretargeting}
+CONDA_ENV_NAME="hsretargeting"
 echo "conda environment name is set to: $CONDA_ENV_NAME"
 
 source ${SCRIPT_DIR}/source_common.sh

@@ -45,12 +45,25 @@ if [[ ! -f $SENTINEL_FILE ]]; then
   # Below follows https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html
   # Install IsaacSim
   pip install --upgrade pip
+
+  # flatdict (sdist) still imports pkg_resources, which was removed in setuptools 82+
+  # wheel 0.46+ requires packaging>=24; IsaacSim stacks often pin packaging lower.
+  pip install -U "setuptools<82" "wheel<0.46"
   pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
   # Install dependencies from PyPI first
-  pip install pyperclip
+  pip install pyperclip prettytable
+  # flatdict is built from sdist and its PEP517 isolated build env may pull setuptools 82+
+  # which removes pkg_resources; force building against the pinned setuptools in this env.
+  pip install --no-build-isolation flatdict
   # Then install isaacsim from NVIDIA index only
   pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url https://pypi.nvidia.com
+
+  # IsaacSim has strict pins; ensure the environment matches them.
+  pip install -U "numpy==1.26.0" "typing_extensions==4.12.2"
+
+  # Fail fast if dependency conflicts remain.
+  pip check
 
   if [[ ! -d $WORKSPACE_DIR/IsaacLab ]]; then
     git clone https://github.com/isaac-sim/IsaacLab.git --branch v2.3.0 $WORKSPACE_DIR/IsaacLab
@@ -67,6 +80,6 @@ if [[ ! -f $SENTINEL_FILE ]]; then
   pip install -e $ROOT_DIR/src/holosoma[unitree,booster]
 
   # Force upgrade wandb to override rl-games constraint
-  pip install --upgrade 'wandb>=0.21.1'
+  pip install --upgrade 'wandb==0.22.0'
   touch $SENTINEL_FILE
 fi

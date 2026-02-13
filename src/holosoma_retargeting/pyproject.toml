@@ -31,6 +31,7 @@ dependencies = [
     "cvxpy",
     "libigl",
     "tyro",
+    "loguru",
 ]
 
 [project.optional-dependencies]
