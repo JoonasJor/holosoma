@@ -90,10 +90,21 @@ if [[ ! -f $SENTINEL_FILE ]]; then
 
   # Create the conda environment
   if [[ ! -d $ENV_ROOT ]]; then
+    # Avoid picking up a broken ~/.condarc (e.g. channel_alias: https//conda.anaconda.org)
+    export CONDARC="$CONDA_ROOT/.condarc"
+    printf '%s\n' \
+      'channel_alias: https://conda.anaconda.org' \
+      'channel_priority: strict' > "$CONDARC"
+
     $CONDA_ROOT/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
     $CONDA_ROOT/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-    $CONDA_ROOT/bin/conda install -y mamba -c conda-forge -n base
-    MAMBA_ROOT_PREFIX=$CONDA_ROOT $CONDA_ROOT/bin/mamba create -y -n $CONDA_ENV_NAME python=3.10 -c conda-forge --override-channels
+
+    # Use full channel URL so it does not depend on channel_alias
+    $CONDA_ROOT/bin/conda install -y -n base --override-channels -c https://conda.anaconda.org/conda-forge mamba
+
+    MAMBA_ROOT_PREFIX=$CONDA_ROOT \
+      $CONDA_ROOT/bin/mamba create -y -n $CONDA_ENV_NAME python=3.10 \
+      --override-channels -c https://conda.anaconda.org/conda-forge
   fi
 
   source $CONDA_ROOT/bin/activate $CONDA_ENV_NAME
