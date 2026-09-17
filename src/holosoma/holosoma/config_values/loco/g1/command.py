@@ -1,5 +1,7 @@
 """Locomotion command presets for the G1 robot."""
 
+from dataclasses import replace
+
 from holosoma.config_types.command import CommandManagerCfg, CommandTermCfg
 
 g1_29dof_command = CommandManagerCfg(
@@ -37,4 +39,23 @@ g1_29dof_command = CommandManagerCfg(
     },
 )
 
-__all__ = ["g1_29dof_command"]
+g1_29dof_low_speed_command = replace(
+    g1_29dof_command,
+    setup_terms={
+        **g1_29dof_command.setup_terms,
+        "locomotion_command": replace(
+            g1_29dof_command.setup_terms["locomotion_command"],
+            params={
+                **g1_29dof_command.setup_terms["locomotion_command"].params,
+                "low_speed_prob": 0.1,
+                "low_speed_command_ranges": {
+                    "lin_vel_x": [0.05, 0.25],
+                    "lin_vel_y": [0.05, 0.25],
+                    "ang_vel_yaw": [0.05, 0.25],
+                },
+            },
+        ),
+    },
+)
+
+__all__ = ["g1_29dof_command", "g1_29dof_low_speed_command"]

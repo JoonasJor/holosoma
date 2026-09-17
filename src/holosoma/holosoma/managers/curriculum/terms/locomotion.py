@@ -211,6 +211,77 @@ class PenaltyCurriculum(CurriculumTermBase):
             self.env.reward_manager.set_term_cfg(name, scaled_cfg)
 
 
+class LowSpeedCommandCurriculum(CurriculumTermBase):
+    """Increase the share of nonzero low-speed commands as balance stabilizes."""
+
+    def __init__(self, cfg: Any, env: Any):
+        super().__init__(cfg, env)
+        params = cfg.params or {}
+        self.enabled = bool(params.get("enabled", True))
+        self.command_term_name = str(params.get("command_term_name", "locomotion_command"))
+        self.min_probability = float(params.get("min_probability", 0.0))
+        self.max_probability = float(params.get("max_probability", 1.0))
+        self.current_probability = float(params.get("initial_probability", self.min_probability))
+        self.level_down_threshold = float(params.get("level_down_threshold", 150.0))
+        self.level_up_threshold = float(params.get("level_up_threshold", 750.0))
+        self.degree = float(params.get("degree", 0.0))
+        self._validate_parameters()
+
+    def setup(self) -> None:
+        if self.enabled:
+            self._apply_probability()
+
+    def reset(self, env_ids) -> None:
+        if not self.enabled:
+            return
+
+        average_length = float(self.env.average_episode_length)
+        if average_length < self.level_down_threshold:
+            self.current_probability *= 1.0 - self.degree
+        elif average_length > self.level_up_threshold:
+            self.current_probability *= 1.0 + self.degree
+
+        self.current_probability = float(np.clip(self.current_probability, self.min_probability, self.max_probability))
+        self._apply_probability()
+
+    def step(self) -> None:
+        if self.enabled:
+            self.current_probability = float(np.clip(self.current_probability, self.min_probability, self.max_probability))
+            self._apply_probability()
+
+    def state_dict(self) -> dict[str, float]:
+        return {"current_probability": self.current_probability}
+
+    def load_state_dict(self, state: dict[str, Any]) -> None:
+        probability = state.get("current_probability")
+        if probability is not None:
+            self.current_probability = float(np.clip(float(probability), self.min_probability, self.max_probability))
+        if self.enabled:
+            self._apply_probability()
+
+    def _apply_probability(self) -> None:
+        command_term = self.env.command_manager.get_state(self.command_term_name)
+        if command_term is None or not hasattr(command_term, "set_low_speed_probability"):
+            raise RuntimeError(
+                f"LowSpeedCommandCurriculum requires a command term with low-speed sampling named "
+                f"'{self.command_term_name}'."
+            )
+        command_term.set_low_speed_probability(self.current_probability)
+        self.env.low_speed_command_probability = self.current_probability
+        if hasattr(self.env, "log_dict"):
+            self.env.log_dict["low_speed_command_probability"] = torch.tensor(
+                self.current_probability, dtype=torch.float
+            )
+
+    def _validate_parameters(self) -> None:
+        if not 0.0 <= self.min_probability <= self.max_probability <= 1.0:
+            raise ValueError("Low-speed curriculum probabilities must satisfy 0.0 <= min <= max <= 1.0.")
+        if not self.min_probability <= self.current_probability <= self.max_probability:
+            raise ValueError("initial_probability must be between min_probability and max_probability.")
+        if not 0.0 <= self.degree < 1.0:
+            raise ValueError("degree must be between 0.0 and 1.0.")
+
+
 # ================================================================================================
 # Legacy stateless functions (backward compatibility)
 # ================================================================================================

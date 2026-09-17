@@ -20,6 +20,16 @@ class LocomotionCommand(CommandTermBase):
             raise ValueError("LocomotionCommand requires 'command_ranges' in params.")
         self.command_ranges: dict[str, Sequence[float]] = {key: tuple(value) for key, value in ranges.items()}
         self.stand_prob: float = float(params.get("stand_prob", 0.0))
+        self.low_speed_prob: float = float(params.get("low_speed_prob", 0.0))
+        self.low_speed_command_ranges: dict[str, Sequence[float]] | None = None
+        low_speed_ranges = params.get("low_speed_command_ranges")
+        if low_speed_ranges is not None:
+            self.low_speed_command_ranges = {key: tuple(value) for key, value in low_speed_ranges.items()}
+            self._validate_low_speed_ranges(self.low_speed_command_ranges)
+        self._validate_probability("stand_prob", self.stand_prob)
+        self._validate_probability("low_speed_prob", self.low_speed_prob)
+        if self.low_speed_prob > 0.0 and self.low_speed_command_ranges is None:
+            raise ValueError("low_speed_command_ranges is required when low_speed_prob is greater than zero.")
         self.command_dim: int = params.get("command_dim", 3)
         self.commands: torch.Tensor | None = None
 
@@ -112,6 +122,68 @@ class LocomotionCommand(CommandTermBase):
             stand_mask = torch.rand(env_ids.shape[0], device=device) <= self.stand_prob
             if stand_mask.any():
                 commands[env_ids[stand_mask], :3] = 0.0
+        else:
+            stand_mask = torch.zeros(env_ids.shape[0], dtype=torch.bool, device=device)
+
+        if self.low_speed_prob > 0.0:
+            low_speed_mask = torch.logical_and(
+                ~stand_mask,
+                torch.rand(env_ids.shape[0], device=device) <= self.low_speed_prob,
+            )
+            if low_speed_mask.any():
+                self._sample_low_speed_commands(env_ids[low_speed_mask])
+
+    def set_low_speed_probability(self, probability: float) -> None:
+        """Set the probability of sampling a nonzero low-speed command."""
+        self._validate_probability("low_speed_prob", probability)
+        self.low_speed_prob = probability
+
+    def _sample_low_speed_commands(self, env_ids: torch.Tensor) -> None:
+        if self.commands is None or self.low_speed_command_ranges is None:
+            return
+
+        device = self.env.device
+        num_commands = env_ids.shape[0]
+        active_components = torch.rand(num_commands, 3, device=device) <= 0.5
+        inactive_commands = ~torch.any(active_components, dim=1)
+        if inactive_commands.any():
+            component_indices = torch.randint(0, 3, (int(inactive_commands.sum().item()),), device=device)
+            active_components[inactive_commands] = False
+            active_components[inactive_commands, component_indices] = True
+
+        component_names = ("lin_vel_x", "lin_vel_y", "ang_vel_yaw")
+        for component_index, component_name in enumerate(component_names):
+            low, high = self.low_speed_command_ranges[component_name]
+            magnitudes = torch_rand_float(low, high, (num_commands, 1), device=device).squeeze(1)
+            signs = torch.where(
+                torch.rand(num_commands, device=device) <= 0.5,
+                -torch.ones(num_commands, device=device),
+                torch.ones(num_commands, device=device),
+            )
+            self.commands[env_ids, component_index] = torch.where(
+                active_components[:, component_index],
+                signs * magnitudes,
+                torch.zeros(num_commands, device=device),
+            )
+
+    @staticmethod
+    def _validate_probability(name: str, probability: float) -> None:
+        if not 0.0 <= probability <= 1.0:
+            raise ValueError(f"{name} must be between 0.0 and 1.0, got {probability}.")
+
+    @staticmethod
+    def _validate_low_speed_ranges(ranges: dict[str, Sequence[float]]) -> None:
+        component_names = ("lin_vel_x", "lin_vel_y", "ang_vel_yaw")
+        missing_components = set(component_names).difference(ranges)
+        if missing_components:
+            missing = ", ".join(sorted(missing_components))
+            raise ValueError(f"low_speed_command_ranges is missing components: {missing}.")
+        for component_name in component_names:
+            low, high = ranges[component_name]
+            if low <= 0.0 or high < low:
+                raise ValueError(
+                    f"low_speed_command_ranges['{component_name}'] must satisfy 0.0 < low <= high, got {(low, high)}."
+                )
 
     def _ensure_index_tensor(self, env_ids: torch.Tensor | Sequence[int] | None) -> torch.Tensor:
         if env_ids is None:
