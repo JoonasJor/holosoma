@@ -79,13 +79,13 @@ class LocomotionPolicy(BasePolicy):
             return
 
         if keycode == "w":
-            self.lin_vel_command[0, 0] += 0.1
+            self.lin_vel_command[0, 0] += 0.05
         elif keycode == "s":
-            self.lin_vel_command[0, 0] -= 0.1
+            self.lin_vel_command[0, 0] -= 0.05
         elif keycode == "a":
-            self.lin_vel_command[0, 1] += 0.1
+            self.lin_vel_command[0, 1] += 0.05
         elif keycode == "d":
-            self.lin_vel_command[0, 1] -= 0.1
+            self.lin_vel_command[0, 1] -= 0.05
 
     def _handle_angular_velocity_control(self, keycode):
         """Handle angular velocity control."""

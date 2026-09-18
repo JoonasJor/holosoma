@@ -662,7 +662,7 @@ class BasePolicy:
                 pass  # Handle special keys if needed
 
         try:
-            listener = listen_keyboard(on_press=on_press)
+            listener = listen_keyboard(on_press=on_press, delay_second_char=0.01)
             listener.start()
             listener.join()
         except OSError as e:
