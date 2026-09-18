@@ -199,6 +199,9 @@ class LeggedRobotLocomotionManager(BaseTask):
     def get_checkpoint_state(self) -> dict[str, torch.Tensor | float]:
         state: dict[str, torch.Tensor | float] = {}
         state["average_episode_tracker"] = self._get_average_episode_tracker().state_dict()
+        low_speed_curriculum = self.curriculum_manager.get_term("low_speed_command_curriculum")
+        if low_speed_curriculum is not None and hasattr(low_speed_curriculum, "state_dict"):
+            state["low_speed_command_curriculum"] = low_speed_curriculum.state_dict()
         if hasattr(self, "reward_penalty_scale"):
             state["reward_penalty_scale"] = float(self.reward_penalty_scale)
         return state
@@ -212,6 +215,11 @@ class LeggedRobotLocomotionManager(BaseTask):
             tracker = self._get_average_episode_tracker()
             tracker.load_state_dict(tracker_state)
             tracker.suppress_next_update()
+
+        low_speed_state = state.get("low_speed_command_curriculum")
+        low_speed_curriculum = self.curriculum_manager.get_term("low_speed_command_curriculum")
+        if low_speed_state is not None and low_speed_curriculum is not None and hasattr(low_speed_curriculum, "load_state_dict"):
+            low_speed_curriculum.load_state_dict(low_speed_state)
 
         penalty_state = state.get("reward_penalty_scale")
         if penalty_state is not None:

@@ -1,5 +1,7 @@
 """Locomotion reward presets for the G1 robot."""
 
+from dataclasses import replace
+
 from holosoma.config_types.reward import RewardManagerCfg, RewardTermCfg
 
 g1_29dof_loco = RewardManagerCfg(
@@ -190,4 +192,29 @@ g1_29dof_loco_fast_sac = RewardManagerCfg(
     },
 )
 
-__all__ = ["g1_29dof_loco", "g1_29dof_loco_fast_sac"]
+g1_29dof_loco_fast_sac_low_speed = replace(
+    g1_29dof_loco_fast_sac,
+    terms={
+        **g1_29dof_loco_fast_sac.terms,
+        "tracking_lin_vel": replace(
+            g1_29dof_loco_fast_sac.terms["tracking_lin_vel"],
+            params={
+                "tracking_sigma": 0.25,
+                "low_speed_tracking_sigma": 0.01,
+                "low_speed_min_command": 0.01,
+                "low_speed_max_command": 0.25,
+            },
+        ),
+        "tracking_ang_vel": replace(
+            g1_29dof_loco_fast_sac.terms["tracking_ang_vel"],
+            params={
+                "tracking_sigma": 0.25,
+                "low_speed_tracking_sigma": 0.01,
+                "low_speed_min_command": 0.01,
+                "low_speed_max_command": 0.25,
+            },
+        ),
+    },
+)
+
+__all__ = ["g1_29dof_loco", "g1_29dof_loco_fast_sac", "g1_29dof_loco_fast_sac_low_speed"]

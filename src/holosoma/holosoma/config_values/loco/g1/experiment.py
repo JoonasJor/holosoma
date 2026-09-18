@@ -55,4 +55,12 @@ g1_29dof_fast_sac = ExperimentConfig(
     ),
 )
 
-__all__ = ["g1_29dof", "g1_29dof_fast_sac"]
+g1_29dof_fast_sac_low_speed = replace(
+    g1_29dof_fast_sac,
+    training=replace(g1_29dof_fast_sac.training, name="g1_29dof_fast_sac_low_speed_manager"),
+    command=command.g1_29dof_low_speed_command,
+    curriculum=curriculum.g1_29dof_curriculum_fast_sac_low_speed,
+    reward=reward.g1_29dof_loco_fast_sac_low_speed,
+)
+
+__all__ = ["g1_29dof", "g1_29dof_fast_sac", "g1_29dof_fast_sac_low_speed"]

@@ -140,7 +140,13 @@ def limits_dof_pos(env: LeggedRobotLocomotionManager, soft_dof_pos_limit: float 
 # ================================================================================================
 
 
-def tracking_lin_vel(env, tracking_sigma: float = 0.25) -> torch.Tensor:
+def tracking_lin_vel(
+    env,
+    tracking_sigma: float = 0.25,
+    low_speed_tracking_sigma: float | None = None,
+    low_speed_min_command: float = 0.01,
+    low_speed_max_command: float = 0.25,
+) -> torch.Tensor:
     """Reward tracking of linear velocity commands (xy axes).
 
     Uses exponential reward: exp(-error / sigma)
@@ -148,16 +154,33 @@ def tracking_lin_vel(env, tracking_sigma: float = 0.25) -> torch.Tensor:
     Args:
         env: The environment instance
         tracking_sigma: Sigma for exponential reward scaling
+        low_speed_tracking_sigma: Optional sigma for nonzero low-speed commands
+        low_speed_min_command: Minimum component magnitude to classify a command as nonzero low speed
+        low_speed_max_command: Maximum component magnitude to classify a command as low speed
 
     Returns:
         Reward tensor [num_envs]
     """
     commands = env.command_manager.commands
     lin_vel_error = torch.sum(torch.square(commands[:, :2] - get_base_lin_vel(env)[:, :2]), dim=1)
-    return torch.exp(-lin_vel_error / tracking_sigma)
+    sigma = torch.full_like(lin_vel_error, tracking_sigma)
+    if low_speed_tracking_sigma is not None:
+        command_magnitudes = torch.abs(commands[:, :2])
+        low_speed_mask = torch.logical_and(
+            torch.any(command_magnitudes >= low_speed_min_command, dim=1),
+            torch.all(command_magnitudes <= low_speed_max_command, dim=1),
+        )
+        sigma[low_speed_mask] = low_speed_tracking_sigma
+    return torch.exp(-lin_vel_error / sigma)
 
 
-def tracking_ang_vel(env, tracking_sigma: float = 0.25) -> torch.Tensor:
+def tracking_ang_vel(
+    env,
+    tracking_sigma: float = 0.25,
+    low_speed_tracking_sigma: float | None = None,
+    low_speed_min_command: float = 0.01,
+    low_speed_max_command: float = 0.25,
+) -> torch.Tensor:
     """Reward tracking of angular velocity commands (yaw).
 
     Uses exponential reward: exp(-error / sigma)
@@ -165,6 +188,9 @@ def tracking_ang_vel(env, tracking_sigma: float = 0.25) -> torch.Tensor:
     Args:
         env: The environment instance
         tracking_sigma: Sigma for exponential reward scaling
+        low_speed_tracking_sigma: Optional sigma for nonzero low-speed commands
+        low_speed_min_command: Minimum command magnitude to classify a command as nonzero low speed
+        low_speed_max_command: Maximum command magnitude to classify a command as low speed
 
     Returns:
         Reward tensor [num_envs]
@@ -172,7 +198,15 @@ def tracking_ang_vel(env, tracking_sigma: float = 0.25) -> torch.Tensor:
     commands = env.command_manager.commands
     ang_vel = get_base_ang_vel(env)
     ang_vel_error = torch.square(commands[:, 2] - ang_vel[:, 2])
-    return torch.exp(-ang_vel_error / tracking_sigma)
+    sigma = torch.full_like(ang_vel_error, tracking_sigma)
+    if low_speed_tracking_sigma is not None:
+        command_magnitude = torch.abs(commands[:, 2])
+        low_speed_mask = torch.logical_and(
+            command_magnitude >= low_speed_min_command,
+            command_magnitude <= low_speed_max_command,
+        )
+        sigma[low_speed_mask] = low_speed_tracking_sigma
+    return torch.exp(-ang_vel_error / sigma)
 
 
 def penalty_ang_vel_xy(env) -> torch.Tensor:

@@ -56,4 +56,28 @@ g1_29dof_curriculum_fast_sac = CurriculumManagerCfg(
     step_terms={},
 )
 
-__all__ = ["g1_29dof_curriculum", "g1_29dof_curriculum_fast_sac"]
+g1_29dof_curriculum_fast_sac_low_speed = CurriculumManagerCfg(
+    params=g1_29dof_curriculum_fast_sac.params,
+    setup_terms={
+        **g1_29dof_curriculum_fast_sac.setup_terms,
+        "low_speed_command_curriculum": CurriculumTermCfg(
+            func="holosoma.managers.curriculum.terms.locomotion:LowSpeedCommandCurriculum",
+            params={
+                "initial_probability": 0.1,
+                "min_probability": 0.1,
+                "max_probability": 0.5,
+                "level_down_threshold": 150.0,
+                "level_up_threshold": 750.0,
+                "degree": 0.001,
+            },
+        ),
+    },
+    reset_terms=g1_29dof_curriculum_fast_sac.reset_terms,
+    step_terms=g1_29dof_curriculum_fast_sac.step_terms,
+)
+
+__all__ = [
+    "g1_29dof_curriculum",
+    "g1_29dof_curriculum_fast_sac",
+    "g1_29dof_curriculum_fast_sac_low_speed",
+]
