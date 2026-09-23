@@ -76,6 +76,22 @@ g1_29dof = RobotConfig(
         "waist_yaw_joint", "waist_roll_joint", "waist_pitch_joint",
     ),
 
+    # Physical deployment PD gains. These override simulation-trained ONNX metadata.
+    motor_kp=(
+        280.0, 280.0, 280.0, 280.0, 50.0, 50.0,  # left leg
+        280.0, 280.0, 280.0, 280.0, 50.0, 50.0,  # right leg
+        350.0, 350.0, 350.0,                      # waist
+        40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,  # left arm
+        40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,  # right arm
+    ),
+    motor_kd=(
+        1.8, 1.8, 1.8, 2.5, 1.8, 1.8,  # left leg
+        1.8, 1.8, 1.8, 2.5, 1.8, 1.8,  # right leg
+        1.8, 1.8, 1.8,                  # waist
+        3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,  # left arm
+        3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,  # right arm
+    ),
+
     # Link Names
     torso_link_name="torso_link",
     left_hand_link_name="left_rubber_hand",
