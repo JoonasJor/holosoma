@@ -55,4 +55,6 @@ source scripts/source_mujoco_setup.sh
 python src/holosoma/holosoma/train_agent.py \
     exp:g1-29dof-fast-sac-low-speed \
     simulator:mjwarp \
+    logger:wandb \
+    --logger.video.enabled False
 ```
